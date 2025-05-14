@@ -29,6 +29,8 @@
     "cdk.out"
   ],
   "include": [
+    "shared/**/*.ts",
+    "shared/**/*.tsx",
     "shared/*.json"
   ],
 }
