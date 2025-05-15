@@ -10,7 +10,7 @@ const ddbDocClient = createDDbDocClient();
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   try {
     const cinemaId = event?.pathParameters?.cinemaId;
-    const movieId = event?.queryStringParameters?.movie;
+    const movieId = event?.queryStringParameters?.movieId;  
     const period = event?.queryStringParameters?.period;
 
     if (!cinemaId) {
@@ -33,7 +33,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
         },
       });
     } else if (period) {
-      
+   
       command = new QueryCommand({
         TableName: process.env.TABLE_NAME,
         IndexName: "periodIx",
