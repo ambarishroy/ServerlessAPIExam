@@ -6,7 +6,7 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 
 const ddbDocClient = createDDbDocClient();
-
+//Final commit to test
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   try {
     const cinemaId = event?.pathParameters?.cinemaId;
