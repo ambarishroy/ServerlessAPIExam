@@ -3,44 +3,57 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
   QueryCommand,
-  QueryCommandInput,
 } from "@aws-sdk/lib-dynamodb";
-import schema from "../shared/types.schema.json";
-const client = createDDbDocClient();
 
-export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
+const ddbDocClient = createDDbDocClient();
+
+export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   try {
-    console.log("Event: ", JSON.stringify(event));
- 
-    return {
-      statusCode: 200,
-      headers: {
-        "content-type": "application/json",
+    const cinemaId = event?.pathParameters?.cinemaId;
+    const movieId = event?.queryStringParameters?.movie;
+
+    if (!cinemaId || !movieId) {
+      return {
+        statusCode: 400,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ message: "cinemaId and movieId are required" }),
+      };
+    }
+
+    const command = new QueryCommand({
+      TableName: process.env.TABLE_NAME,
+      KeyConditionExpression: "cinemaId = :cinemaId AND movieId = :movieId",
+      ExpressionAttributeValues: {
+        ":cinemaId": Number(cinemaId),
+        ":movieId": movieId,
       },
-      body: JSON.stringify({}),
-    };
-  } catch (error: any) {
-    console.log(JSON.stringify(error));
+    });
+
+    const result = await ddbDocClient.send(command);
+
+    if (result.Items && result.Items.length > 0) {
+      return {
+        statusCode: 200,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(result.Items[0]),
+      };
+    } else {
+      return {
+        statusCode: 404,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ message: "Movie not found" }),
+      };
+    }
+  } catch (error) {
     return {
       statusCode: 500,
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ error }),
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ error: error.message }),
     };
   }
 };
 
 function createDDbDocClient() {
   const ddbClient = new DynamoDBClient({ region: process.env.REGION });
-  const marshallOptions = {
-    convertEmptyValues: true,
-    removeUndefinedValues: true,
-    convertClassInstanceToMap: true,
-  };
-  const unmarshallOptions = {
-    wrapNumbers: false,
-  };
-  const translateConfig = { marshallOptions, unmarshallOptions };
-  return DynamoDBDocumentClient.from(ddbClient, translateConfig);
+  return DynamoDBDocumentClient.from(ddbClient);
 }

@@ -13,13 +13,19 @@ export class ExamStack extends cdk.Stack {
     super(scope, id, props);
 
     // NOTE: This table declaration is incomplete, and will cause a deployment to fail.
-    // The correct code will be provided in the exam question tests.
-    const table = new dynamodb.Table(this, "CinemasTable", {
+    // The correct code will be provided in the exam question.
+      const table = new dynamodb.Table(this, "CinemasTable", {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       partitionKey: { name: "cinemaId", type: dynamodb.AttributeType.NUMBER },
+      sortKey: { name: "movieId", type: dynamodb.AttributeType.STRING },
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       tableName: "CinemaTable",
-    });
+ });
+
+    table.addLocalSecondaryIndex({
+      indexName: "periodIx",
+      sortKey: { name: "period", type: dynamodb.AttributeType.STRING },
+ });
 
 
     const question1Fn = new lambdanode.NodejsFunction(this, "QuestionFn", {
@@ -32,7 +38,21 @@ export class ExamStack extends cdk.Stack {
         REGION: "eu-west-1",
       },
     });
-
+// const getMovieByIdFn = new lambdanode.NodejsFunction(
+//       this,
+//       "GetMovieByIdFn",
+//       {
+//         architecture: lambda.Architecture.ARM_64,
+//         runtime: lambda.Runtime.NODEJS_18_X,
+//         entry: `${__dirname}/../lambdas/getMovieById.ts`,
+//         timeout: cdk.Duration.seconds(10),
+//         memorySize: 128,
+//         environment: {
+//           TABLE_NAME: table.tableName,
+//           REGION: 'eu-west-1',
+//         },
+//       }
+//       );
     new custom.AwsCustomResource(this, "moviesddbInitData", {
       onCreate: {
         service: "DynamoDB",
@@ -48,7 +68,7 @@ export class ExamStack extends cdk.Stack {
         resources: [table.tableArn],
       }),
     });
-
+table.grantReadData(question1Fn)
     const api = new apig.RestApi(this, "ExamAPI", {
       description: "Exam api",
       deployOptions: {
@@ -61,6 +81,20 @@ export class ExamStack extends cdk.Stack {
         allowOrigins: ["*"],
       },
     });
+    const moviesEndpoint = api.root.addResource("cinemas");
+const cinemaMoviesEndpoint = moviesEndpoint.addResource("{cinemaId}");
+cinemaMoviesEndpoint.addMethod(
+  "GET",
+  new apig.LambdaIntegration(question1Fn, { proxy: true })
+);
+
+           
+
+            // const specificMovieEndpoint = moviesEndpoint.addResource("{movieId}");
+            // specificMovieEndpoint.addMethod(
+            //   "GET",
+            //   new apig.LambdaIntegration(getMovieByIdFn, { proxy: true })
+            // );
 
   }
 }
