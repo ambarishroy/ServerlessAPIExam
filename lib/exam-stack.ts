@@ -38,21 +38,7 @@ export class ExamStack extends cdk.Stack {
         REGION: "eu-west-1",
       },
     });
-// const getMovieByIdFn = new lambdanode.NodejsFunction(
-//       this,
-//       "GetMovieByIdFn",
-//       {
-//         architecture: lambda.Architecture.ARM_64,
-//         runtime: lambda.Runtime.NODEJS_18_X,
-//         entry: `${__dirname}/../lambdas/getMovieById.ts`,
-//         timeout: cdk.Duration.seconds(10),
-//         memorySize: 128,
-//         environment: {
-//           TABLE_NAME: table.tableName,
-//           REGION: 'eu-west-1',
-//         },
-//       }
-//       );
+
     new custom.AwsCustomResource(this, "moviesddbInitData", {
       onCreate: {
         service: "DynamoDB",
@@ -68,33 +54,42 @@ export class ExamStack extends cdk.Stack {
         resources: [table.tableArn],
       }),
     });
-table.grantReadData(question1Fn)
-    const api = new apig.RestApi(this, "ExamAPI", {
-      description: "Exam api",
-      deployOptions: {
-        stageName: "dev",
-      },
-      defaultCorsPreflightOptions: {
-        allowHeaders: ["Content-Type", "X-Amz-Date"],
-        allowMethods: ["OPTIONS", "GET", "POST", "PUT", "PATCH", "DELETE"],
-        allowCredentials: true,
-        allowOrigins: ["*"],
-      },
-    });
-    const moviesEndpoint = api.root.addResource("cinemas");
-const cinemaMoviesEndpoint = moviesEndpoint.addResource("{cinemaId}");
-cinemaMoviesEndpoint.addMethod(
-  "GET",
-  new apig.LambdaIntegration(question1Fn, { proxy: true })
-);
 
-           
+    table.grantReadData(question1Fn)
+              const api = new apig.RestApi(this, "ExamAPI", {
+            description: "Exam API",
+            deployOptions: {
+              stageName: "dev",
+            },
+            defaultCorsPreflightOptions: {
+              allowHeaders: ["Content-Type", "X-Amz-Date"],
+              allowMethods: ["OPTIONS", "GET", "POST", "PUT", "PATCH", "DELETE"],
+              allowCredentials: true,
+              allowOrigins: ["*"],
+            },
+          });
 
-            // const specificMovieEndpoint = moviesEndpoint.addResource("{movieId}");
-            // specificMovieEndpoint.addMethod(
-            //   "GET",
-            //   new apig.LambdaIntegration(getMovieByIdFn, { proxy: true })
-            // );
+
+          const cinemasResource = api.root.addResource("cinemas");
+
+
+          const cinemaIdResource = cinemasResource.addResource("{cinemaId}");
+
+
+          const moviesResource = cinemaIdResource.addResource("movies");
+
+
+          moviesResource.addMethod(
+            "GET",
+            new apig.LambdaIntegration(question1Fn, { proxy: true })
+          );
+
+                    
+
+                  
+
+
+            
 
   }
 }
